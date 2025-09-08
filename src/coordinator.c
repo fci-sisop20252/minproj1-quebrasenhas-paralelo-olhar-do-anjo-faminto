@@ -198,17 +198,48 @@ int main(int argc, char *argv[]) {
     printf("\n=== Resultado ===\n");
     
     // TODO 9: Verificar se algum worker encontrou a senha
-    // Ler o arquivo password_found.txt se existir
     
-    // IMPLEMENTE AQUI:
-    // - Abrir arquivo RESULT_FILE para leitura
-    // - Ler conteúdo do arquivo
-    // - Fazer parse do formato "worker_id:password"
-    // - Verificar o hash usando md5_string()
-    // - Exibir resultado encontrado
+    // Ler o arquivo password_found.txt se existir
+    int fd = open(RESULT_FILE, O_RDONLY); // Abrir arquivo RESULT_FILE para leitura
+    if (fd >= 0) { 
+        char buffer[256];
+        ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1); // Ler conteúdo do arquivo
+        close(fd);
+
+        if (bytes_read > 0) { // Se conseguiu ler
+            buffer[bytes_read] = '\0'; // garante que o ultimo caractere seja uma terminacao de string
+
+            // Fazer parse do formato "worker_id:password"
+            int found_worker;
+            char found_password[128];
+            if (sscanf(buffer, "%d:%127s", &found_worker, found_password) == 2) {
+                // Calcular o hash da senha encontrada
+                char verify_hash[33];
+                md5_string(found_password, verify_hash); //Verificar o hash usando md5_string()
+
+                // - Exibir resultado encontrado
+                printf("[Worker %d] Outro worker já encontrou!\n", worker_id);
+                printf("Worker %d encontrou a senha: %s\n", found_worker, found_password);
+                printf("Hash verificado: %s\n", verify_hash);
+            } else {
+                printf("Formato inesperado em %s: %s\n", RESULT_FILE, buffer);
+            }
+        }
+    }
+
+
     
     // Estatísticas finais (opcional)
     // TODO: Calcular e exibir estatísticas de performance
+
+    time_t end_time = time(NULL);
+    double total_time = difftime(end_time, start_time);
+
+    printf("[Worker %d] Finalizado. Total: %lld senhas em %.2f segundos", worker_id, passwords_checked, total_time);
+    if (total_time > 0) {
+        printf(" (%.0f senhas/s)", passwords_checked / total_time);
+    }
+    printf("\n");
     
     return 0;
 }
