@@ -153,7 +153,13 @@ int main(int argc, char *argv[]) {
             perror("Erro ao criar worker");
             exit(1);
         } else if (pid == 0) {
-            execl("./worker", "worker", "............" ,NULL);
+            char password_len_str[16];
+            char worker_id_str[16];
+
+            sprintf(password_len_str, "%d", password_len);
+            sprintf(worker_id_str, "%d", i);
+
+            execl("./worker", "worker", target_hash, password_inicio, password_fim, charset, password_len_str, worker_id_str, NULL);
             perror("Erro ao executar worker");
             exit(1);
         } else {
@@ -182,9 +188,9 @@ int main(int argc, char *argv[]) {
             contador++;
             // - Verificar se terminou normalmente ou com erro
             if (exit_code == 0) {
-                printf("Terminou normalmente.\n", child_pid);
+                printf("Worker PID %d terminou normalmente.\n", child_pid);
             } else {
-                printf("Terminou com erro (código %d).\n", child_pid, exit_code);
+                printf("Worker PID %d terminou com erro (código %d).\n", child_pid, exit_code);
             }
         }
     }
@@ -200,7 +206,7 @@ int main(int argc, char *argv[]) {
     // TODO 9: Verificar se algum worker encontrou a senha
     
     // Ler o arquivo password_found.txt se existir
-    int fd = open(RESULT_FILE, O_RDONLY); // Abrir arquivo RESULT_FILE para leitura
+    int fd = open(RESULT_FILE, O_RDONLY, O_CREAT, O_EXCL); // Abrir arquivo RESULT_FILE para leitura
     if (fd >= 0) { 
         char buffer[256];
         ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1); // Ler conteúdo do arquivo
@@ -218,7 +224,7 @@ int main(int argc, char *argv[]) {
                 md5_string(found_password, verify_hash); //Verificar o hash usando md5_string()
 
                 // - Exibir resultado encontrado
-                printf("[Worker %d] Outro worker já encontrou!\n", worker_id);
+                printf("[Worker %d] Outro worker já encontrou!\n", found_worker);
                 printf("Worker %d encontrou a senha: %s\n", found_worker, found_password);
                 printf("Hash verificado: %s\n", verify_hash);
             } else {
@@ -232,14 +238,7 @@ int main(int argc, char *argv[]) {
     // Estatísticas finais (opcional)
     // TODO: Calcular e exibir estatísticas de performance
 
-    time_t end_time = time(NULL);
-    double total_time = difftime(end_time, start_time);
-
-    printf("[Worker %d] Finalizado. Total: %lld senhas em %.2f segundos", worker_id, passwords_checked, total_time);
-    if (total_time > 0) {
-        printf(" (%.0f senhas/s)", passwords_checked / total_time);
-    }
-    printf("\n");
+    printf("Tempo total: %.2f segundos\n", elapsed_time);
     
     return 0;
 }
